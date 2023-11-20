@@ -24,10 +24,7 @@ scrape_configs:
       module: [http_2xx_example]  # Смотрит на HTTP 200 отклик.
     static_configs:
       - targets:
-          # Target to probe with http.
-          # Production sites
-          - https://letsnova.com/
-          - https://safetysoft.ru/
+
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
