@@ -1,4 +1,4 @@
-## Конфигурация веб-аутентификации для Prometheus
+# Конфигурация веб-аутентификации для Prometheus
 # Этот файл определяет настройки Basic Authentication
 
 basic_auth_users:
