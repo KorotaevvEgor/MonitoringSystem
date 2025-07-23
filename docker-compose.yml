@@ -11,7 +11,7 @@ volumes:
 # Определение сервисов мониторинга
 services:
 
-  # Основной сервис мониторинга - Prometheus
+  # Основной сервис мониторинга - Prometheus (с Basic Auth)
   prometheus:
     image: prom/prometheus:v3.5.0    # Официальный образ Prometheus версии 2.48.1
     container_name: prometheus         # Фиксированное имя контейнера для удобства обращения
@@ -24,6 +24,7 @@ services:
       - '--web.enable-lifecycle'                                 # Включает API для перезагрузки конфигурации
       - '--web.enable-admin-api'                                 # Включает административные API функции
       - '--storage.tsdb.wal-compression'                         # Сжатие WAL логов для экономии места
+      - '--web.config.file=/etc/prometheus/web.yml'              # Конфигурация веб-аутентификации
     volumes:
       - ./prometheus:/etc/prometheus    # Монтирует локальную папку конфигурации в контейнер
       - prometheus_data:/prometheus     # Монтирует именованный том для данных
@@ -63,13 +64,19 @@ services:
     network_mode: host                   # Использует сеть хоста для доступа ко всем интерфейсам
     pid: host                           # Использует PID namespace хоста для доступа к процессам
 
-  # Сервис визуализации метрик
+  # Сервис визуализации метрик (с безопасностью)
   grafana:
-    image: grafana/grafana:12.1.0        # Официальный образ Grafana версии 12.1.0 
+    image: grafana/grafana:12.1.0        # Официальный образ Grafana версии 12.1.0
     container_name: grafana              # Фиксированное имя контейнера
+    environment:                         # Переменные окружения для безопасности
+      - GF_SECURITY_ADMIN_PASSWORD=StrongAdminPassword123!  # Пароль администратора
+      - GF_SECURITY_SECRET_KEY=very-secret-key-for-grafana-sessions  # Секретный ключ для сессий
+      - GF_USERS_ALLOW_SIGN_UP=false       # Отключаем самостоятельную регистрацию
+      - GF_AUTH_ANONYMOUS_ENABLED=false    # Отключаем анонимный доступ
     volumes:
       - grafana_data:/var/lib/grafana    # Монтирует том для постоянного хранения дашбордов и настроек
       - ./grafana/provisioning:/etc/grafana/provisioning  # Монтирует конфигурацию автоматического провижининга
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini     # Монтирует конфигурацию безопасности
     restart: unless-stopped              # Автоматический перезапуск при падении
     ports:
        - "3000:3000"                     # Проброс порта 3000 для веб-интерфейса Grafana
