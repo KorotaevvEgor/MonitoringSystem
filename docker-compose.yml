@@ -11,9 +11,9 @@ volumes:
 # Определение сервисов мониторинга
 services:
 
-  # Основной сервис мониторинга - Prometheus (с Basic Auth)
+  # Основной сервис мониторинга - Prometheus (без авторизации)
   prometheus:
-    image: prom/prometheus:v3.5.0    # Официальный образ Prometheus версии 2.48.1
+    image: prom/prometheus:v3.5.0    # Официальный образ Prometheus версии 3.5.0
     container_name: prometheus         # Фиксированное имя контейнера для удобства обращения
     command:                          # Параметры запуска Prometheus
       - '--config.file=/etc/prometheus/prometheus.yml'           # Путь к файлу конфигурации
@@ -24,7 +24,6 @@ services:
       - '--web.enable-lifecycle'                                 # Включает API для перезагрузки конфигурации
       - '--web.enable-admin-api'                                 # Включает административные API функции
       - '--storage.tsdb.wal-compression'                         # Сжатие WAL логов для экономии места
-      - '--web.config.file=/etc/prometheus/web.yml'              # Конфигурация веб-аутентификации
     volumes:
       - ./prometheus:/etc/prometheus    # Монтирует локальную папку конфигурации в контейнер
       - prometheus_data:/prometheus     # Монтирует именованный том для данных
