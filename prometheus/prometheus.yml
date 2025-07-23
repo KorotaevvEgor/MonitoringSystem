@@ -1,30 +1,39 @@
 global:
-  scrape_interval:     5s
-  evaluation_interval: 5s
+  scrape_interval: 15s     # Оптимизированный интервал
+  evaluation_interval: 15s # Оптимизированный интервал
+  scrape_timeout: 10s      # Таймаут для scrape
 
   external_labels:
-      monitor: 'docker-host-alpha'
+    monitor: 'docker-host-alpha'
+    cluster: 'monitoring-cluster'
 
 scrape_configs:
   - job_name: 'nodeexporter'
-    scrape_interval: 5s
+    scrape_interval: 15s
     static_configs:
-      - targets: ['localhost:9100']
+      - targets: ['nodeexporter:9100']  # Используем имя контейнера
+    scrape_timeout: 10s
+    metrics_path: /metrics
 
-# Node-Экспортер prometheus
+  # Мониторинг самого Prometheus
   - job_name: 'prometheus'
-    scrape_interval: 10s
+    scrape_interval: 30s
     static_configs:
       - targets: ['localhost:9090']
+    scrape_timeout: 10s
 
 
   - job_name: 'blackbox'
     metrics_path: /probe
     params:
-      module: [http_2xx_example]  # Смотрит на HTTP 200 отклик.
+      module: [http_2xx_example]  # Смотрит на HTTP 200 отклик
     static_configs:
       - targets:
-
+        - https://prometheus.io     # Пример цели для мониторинга
+        - https://grafana.com       # Пример цели для мониторинга
+        - https://google.com        # Пример цели для мониторинга
+    scrape_interval: 30s
+    scrape_timeout: 10s
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
