@@ -1,69 +1,76 @@
-version: '3'
+# Версия формата Docker Compose файла
+version: '3.9'
 
+# Именованные тома для постоянного хранения данных
 volumes:
-    prometheus_data: {}
-    grafana_data: {}
-    blackbox_data: {}
-    alertmanager: {}
+    prometheus_data: {}    # Том для хранения данных метрик Prometheus
+    grafana_data: {}       # Том для хранения данных дашбордов и настроек Grafana
+    blackbox_data: {}      # Том для конфигурации Blackbox Exporter
+    alertmanager: {}       # Том для данных Alertmanager (зарезервирован)
 
+# Определение сервисов мониторинга
 services:
 
+  # Основной сервис мониторинга - Prometheus
   prometheus:
-    image: prom/prometheus:v2.48.1
-    container_name: prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=200h'
-      - '--web.enable-lifecycle'
-      - '--web.enable-admin-api'
-      - '--storage.tsdb.wal-compression'
+    image: prom/prometheus:v3.5.0    # Официальный образ Prometheus версии 2.48.1
+    container_name: prometheus         # Фиксированное имя контейнера для удобства обращения
+    command:                          # Параметры запуска Prometheus
+      - '--config.file=/etc/prometheus/prometheus.yml'           # Путь к файлу конфигурации
+      - '--storage.tsdb.path=/prometheus'                        # Путь для хранения базы данных метрик
+      - '--web.console.libraries=/etc/prometheus/console_libraries'  # Библиотеки для веб-консоли
+      - '--web.console.templates=/etc/prometheus/consoles'       # Шаблоны для веб-консоли
+      - '--storage.tsdb.retention.time=200h'                     # Время хранения метрик (200 часов = ~8 дней)
+      - '--web.enable-lifecycle'                                 # Включает API для перезагрузки конфигурации
+      - '--web.enable-admin-api'                                 # Включает административные API функции
+      - '--storage.tsdb.wal-compression'                         # Сжатие WAL логов для экономии места
     volumes:
-      - ./prometheus:/etc/prometheus
-      - prometheus_data:/prometheus
-    restart: unless-stopped
+      - ./prometheus:/etc/prometheus    # Монтирует локальную папку конфигурации в контейнер
+      - prometheus_data:/prometheus     # Монтирует именованный том для данных
+    restart: unless-stopped            # Автоматический перезапуск при падении
     ports:
-     - "9090:9090"
+     - "9090:9090"                     # Проброс порта 9090 для веб-интерфейса Prometheus
 
+  # Сервис для проверки доступности внешних ресурсов
   blackbox:
-    image: prom/blackbox-exporter:v0.24.0
-    container_name: blackbox
-    restart: unless-stopped
+    image: prom/blackbox-exporter:v0.27.0  # Официальный образ Blackbox Exporter
+    container_name: blackbox               # Фиксированное имя контейнера
+    restart: unless-stopped                # Автоматический перезапуск при падении
     volumes:
-      - ./blackbox:/config
-    command: --config.file=/config/blackbox.yml
+      - ./blackbox:/config                 # Монтирует конфигурацию Blackbox Exporter
+    command: --config.file=/config/blackbox.yml  # Указывает путь к файлу конфигурации
     ports:
-      - "9115:9115"
+      - "9115:9115"                       # Проброс порта 9115 для HTTP проверок
 
+  # Сервис для мониторинга системных метрик хоста
   nodeexporter:
-    image: prom/node-exporter:v1.7.0
-    container_name: nodeexporter
+    image: prom/node-exporter:v1.9.1      # Официальный образ Node Exporter
+    container_name: nodeexporter          # Фиксированное имя контейнера
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.rootfs=/rootfs'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      - '--collector.systemd'
-      - '--collector.processes'
+      - '--path.procfs=/host/proc'         # Путь к procfs хостовой системы
+      - '--path.rootfs=/rootfs'            # Путь к корневой файловой системе хоста
+      - '--path.sysfs=/host/sys'           # Путь к sysfs хостовой системы
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'  # Исключает системные точки монтирования
+      - '--collector.systemd'              # Включает сбор метрик systemd сервисов
+      - '--collector.processes'            # Включает сбор метрик процессов
     volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
-    restart: unless-stopped
+      - /proc:/host/proc:ro               # Монтирует procfs хоста в режиме "только чтение"
+      - /sys:/host/sys:ro                 # Монтирует sysfs хоста в режиме "только чтение"
+      - /:/rootfs:ro                      # Монтирует корневую ФС хоста в режиме "только чтение"
+    restart: unless-stopped              # Автоматический перезапуск при падении
     ports:
-      - "9100:9100"
-    network_mode: host
-    pid: host
+      - "9100:9100"                      # Проброс порта 9100 для экспорта метрик
+    network_mode: host                   # Использует сеть хоста для доступа ко всем интерфейсам
+    pid: host                           # Использует PID namespace хоста для доступа к процессам
 
+  # Сервис визуализации метрик
   grafana:
-    image: grafana/grafana:10.2.3
-    container_name: grafana
+    image: grafana/grafana:12.1.0        # Официальный образ Grafana версии 12.1.0 
+    container_name: grafana              # Фиксированное имя контейнера
     volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-    restart: unless-stopped
+      - grafana_data:/var/lib/grafana    # Монтирует том для постоянного хранения дашбордов и настроек
+      - ./grafana/provisioning:/etc/grafana/provisioning  # Монтирует конфигурацию автоматического провижининга
+    restart: unless-stopped              # Автоматический перезапуск при падении
     ports:
-       - "3000:3000"
+       - "3000:3000"                     # Проброс порта 3000 для веб-интерфейса Grafana
 

@@ -1,60 +1,86 @@
+# ========================================================================
+# КОНФИГУРАЦИЯ МОДУЛЕЙ BLACKBOX EXPORTER
+# ========================================================================
+# Blackbox Exporter позволяет проверять доступность внешних ресурсов
+# различными способами: HTTP, TCP, ICMP, DNS запросы
+
 modules:
+  # ----------------------------------------------------------------------
+  # БАЗОВАЯ HTTP/HTTPS ПРОВЕРКА (ИСПОЛЬЗУЕТСЯ В PROMETHEUS.YML)
+  # ----------------------------------------------------------------------
   http_2xx_example:
-    prober: http
-    timeout: 10s
+    prober: http                       # Тип проверки - HTTP запрос
+    timeout: 10s                       # Максимальное время ожидания ответа
     http:
-      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
-      valid_status_codes: [200]  # Только 200 OK
-      method: GET
-      preferred_ip_protocol: "ip4"
-      follow_redirects: true
-      fail_if_ssl: false
-      fail_if_not_ssl: false
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]  # Допустимые версии HTTP протокола
+      valid_status_codes: [200]        # Считаем успешными только HTTP 200 ответы
+      method: GET                      # HTTP метод запроса
+      preferred_ip_protocol: "ip4"     # Предпочитаем IPv4 (для совместимости)
+      follow_redirects: true           # Следуем по редиректам (301, 302, etc.)
+      fail_if_ssl: false               # НЕ считаем ошибкой наличие SSL
+      fail_if_not_ssl: false           # НЕ считаем ошибкой отсутствие SSL
 
+  # ----------------------------------------------------------------------
+  # HTTP POST ПРОВЕРКА (ДЛЯ API ЭНДПОИНТОВ)
+  # ----------------------------------------------------------------------
   http_post_2xx:
-    prober: http
-    timeout: 10s
+    prober: http                       # Тип проверки - HTTP запрос
+    timeout: 10s                       # Максимальное время ожидания ответа
     http:
-      method: POST
-      headers:
-        Content-Type: application/json
-      body: '{}'
-      valid_status_codes: [200, 201, 202]
+      method: POST                     # HTTP POST метод (для API проверок)
+      headers:                         # Заголовки HTTP запроса
+        Content-Type: application/json # Указываем, что отправляем JSON
+      body: '{}'                       # Тело запроса (пустой JSON объект)
+      valid_status_codes: [200, 201, 202]  # Успешные коды для POST запросов
 
-  # Проверка HTTPS с валидацией SSL
+  # ----------------------------------------------------------------------
+  # СТРОГАЯ HTTPS ПРОВЕРКА С ВАЛИДАЦИЕЙ SSL СЕРТИФИКАТА
+  # ----------------------------------------------------------------------
   http_2xx_ssl:
-    prober: http
-    timeout: 10s
+    prober: http                       # Тип проверки - HTTP запрос
+    timeout: 10s                       # Максимальное время ожидания ответа
     http:
-      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
-      valid_status_codes: [200]
-      method: GET
-      preferred_ip_protocol: "ip4"
-      fail_if_not_ssl: true
-      tls_config:
-        insecure_skip_verify: false
+      valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]  # Допустимые версии HTTP
+      valid_status_codes: [200]        # Только HTTP 200 считается успехом
+      method: GET                      # HTTP GET метод
+      preferred_ip_protocol: "ip4"     # Предпочитаем IPv4
+      fail_if_not_ssl: true            # ОБЯЗАТЕЛЬНО требуем HTTPS соединение
+      tls_config:                      # Настройки TLS/SSL
+        insecure_skip_verify: false    # НЕ игнорируем ошибки SSL сертификата
 
-  # TCP проверка
+  # ----------------------------------------------------------------------
+  # TCP ПОДКЛЮЧЕНИЕ (ПРОВЕРКА ДОСТУПНОСТИ ПОРТА)
+  # ----------------------------------------------------------------------
   tcp_connect:
-    prober: tcp
-    timeout: 10s
+    prober: tcp                        # Тип проверки - TCP соединение
+    timeout: 10s                       # Таймаут подключения
     tcp:
-      preferred_ip_protocol: "ip4"
+      preferred_ip_protocol: "ip4"     # Предпочитаем IPv4
+      # Пример использования: проверка доступности базы данных на порту 5432
+      # или веб-сервера на порту 80/443
 
-  # ICMP ping
+  # ----------------------------------------------------------------------
+  # ICMP PING (ПРОВЕРКА СЕТЕВОЙ ДОСТУПНОСТИ)
+  # ----------------------------------------------------------------------
   icmp:
-    prober: icmp
-    timeout: 10s
+    prober: icmp                       # Тип проверки - ICMP ping
+    timeout: 10s                       # Таймаут ping запроса
     icmp:
-      preferred_ip_protocol: "ip4"
+      preferred_ip_protocol: "ip4"     # Предпочитаем IPv4
+      # Примечание: для работы ICMP может потребоваться запуск контейнера
+      # с привилегиями (--cap-add=NET_RAW) или от имени root
 
-  # DNS проверка
+  # ----------------------------------------------------------------------
+  # DNS ЗАПРОС (ПРОВЕРКА РЕЗОЛВИНГА ДОМЕННЫХ ИМЕН)
+  # ----------------------------------------------------------------------
   dns:
-    prober: dns
-    timeout: 10s
+    prober: dns                        # Тип проверки - DNS запрос
+    timeout: 10s                       # Таймаут DNS запроса
     dns:
-      query_name: "example.com"
-      query_type: "A"
-      valid_rcodes:
-        - NOERROR
-      preferred_ip_protocol: "ip4"
+      query_name: "example.com"        # Доменное имя для проверки (замените на нужное)
+      query_type: "A"                  # Тип DNS записи (A, AAAA, MX, CNAME, etc.)
+      valid_rcodes:                    # Допустимые коды ответа DNS сервера
+        - NOERROR                      # Успешный ответ (запись найдена)
+      preferred_ip_protocol: "ip4"     # Предпочитаем IPv4
+      # Используется для проверки работоспособности DNS серверов
+      # и корректности резолвинга критически важных доменов

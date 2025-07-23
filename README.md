@@ -2,25 +2,33 @@
 
 ## Обновленная система мониторинга
 
-### Компоненты:
-- **Prometheus v2.48.1** - сбор и хранение метрик
-- **Grafana v10.2.3** - визуализация данных
-- **Node Exporter v1.7.0** - метрики системы Linux
-- **Blackbox Exporter v0.24.0** - мониторинг доступности сервисов
+### Описание проекта
+Эта система мониторинга позволяет собирать, хранить и визуализировать метрики с использованием основных компонентов, таких как Prometheus, Grafana, Node Exporter и Blackbox Exporter, развернутых с помощью Docker Compose.
 
-### Оптимизации:
-- Оптимизированные интервалы scrape (15s вместо 5s)
-- Добавлено WAL сжатие в Prometheus
-- Улучшенная конфигурация Node Exporter
-- Расширенные модули Blackbox Exporter
+![ArchVision](./docs/images/architecture.png)
 
-### Запуск:
+### Компоненты
+- **Prometheus v2.48.1** - платформа для мониторинга и оповещения, собирающая и хранящая метрики.
+- **Grafana v10.2.3** - интуитивно понятная платформа визуализации с поддержкой графиков и дашбордов.
+- **Node Exporter v1.7.0** - инструмент для экспорта системных метрик UNIX систем, таких как CPU и память.
+- **Blackbox Exporter v0.24.0** - проверяет доступность HTTP/HTTPS, DNS, TCP и ICMP ресурсов.
+
+### Оптимизации
+- Оптимизированные интервалы scrape (15s вместо 5s) снижают нагрузку.
+- Добавлено сжатие WAL логов в Prometheus для экономии на дисковом пространстве.
+- Расширенная конфигурация для Node Exporter обеспечивает более точные данные.
+- Дополнительные модули в Blackbox Exporter расширяют возможности проверки.
+
+### Запуск
 ```bash
 docker-compose up -d
 ```
 
-### Доступ:
-- Prometheus: http://localhost:9090
-- Grafana: http://localhost:3000
-- Node Exporter: http://localhost:9100
-- Blackbox Exporter: http://localhost:9115
+### Доступ
+- **Prometheus**: [http://localhost:9090](http://localhost:9090) - метрики и трекеры.
+- **Grafana**: [http://localhost:3000](http://localhost:3000) - графики и аналитика (стандартный логин: Admin/admin).
+- **Node Exporter**: [http://localhost:9100](http://localhost:9100) - системные метрики хоста.
+- **Blackbox Exporter**: [http://localhost:9115](http://localhost:9115) - проверки доступности.
+
+---
+Разработано с ❤️ для улучшения доступности и надежности ваших систем и приложений.

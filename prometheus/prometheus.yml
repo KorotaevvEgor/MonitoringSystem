@@ -1,43 +1,61 @@
+# ==================================================
+# ГЛОБАЛЬНАЯ КОНФИГУРАЦИЯ PROMETHEUS
+# ==================================================
 global:
-  scrape_interval: 15s     # Оптимизированный интервал
-  evaluation_interval: 15s # Оптимизированный интервал
-  scrape_timeout: 10s      # Таймаут для scrape
+  scrape_interval: 15s     # Базовый интервал сбора метрик со всех целей (каждые 15 секунд)
+  evaluation_interval: 15s # Частота вычисления правил алертов (каждые 15 секунд)
+  scrape_timeout: 10s      # Максимальное время ожидания ответа от цели (10 секунд)
 
+  # Глобальные метки, которые добавляются ко всем метрикам и алертам
   external_labels:
-    monitor: 'docker-host-alpha'
-    cluster: 'monitoring-cluster'
+    monitor: 'docker-host-alpha'     # Идентификатор данного экземпляра мониторинга
+    cluster: 'monitoring-cluster'    # Название кластера для группировки в федерации
 
+# ==================================================
+# КОНФИГУРАЦИИ СБОРА МЕТРИК (SCRAPE CONFIGS)
+# ==================================================
 scrape_configs:
-  - job_name: 'nodeexporter'
-    scrape_interval: 15s
-    static_configs:
-      - targets: ['nodeexporter:9100']  # Используем имя контейнера
-    scrape_timeout: 10s
-    metrics_path: /metrics
+  # ----------------------------------------------
+  # МОНИТОРИНГ СИСТЕМНЫХ МЕТРИК ХОСТА
+  # ----------------------------------------------
+  - job_name: 'nodeexporter'           # Уникальное имя задания для Node Exporter
+    scrape_interval: 15s               # Частота сбора метрик (переопределяет глобальную)
+    static_configs:                    # Статический список целей
+      - targets: ['nodeexporter:9100'] # Адрес Node Exporter (используем DNS имя контейнера)
+    scrape_timeout: 10s                # Таймаут для данной цели
+    metrics_path: /metrics             # Путь к эндпоинту метрик (стандартный для Prometheus экспортеров)
 
-  # Мониторинг самого Prometheus
-  - job_name: 'prometheus'
-    scrape_interval: 30s
+  # ----------------------------------------------
+  # МОНИТОРИНГ САМОГО PROMETHEUS (SELF-MONITORING)
+  # ----------------------------------------------
+  - job_name: 'prometheus'             # Задание для мониторинга самого Prometheus
+    scrape_interval: 30s               # Реже собираем собственные метрики (экономия ресурсов)
     static_configs:
-      - targets: ['localhost:9090']
-    scrape_timeout: 10s
+      - targets: ['localhost:9090']    # Локальный адрес Prometheus
+    scrape_timeout: 10s                # Таймаут запроса
 
-
-  - job_name: 'blackbox'
-    metrics_path: /probe
-    params:
-      module: [http_2xx_example]  # Смотрит на HTTP 200 отклик
+  # ----------------------------------------------
+  # МОНИТОРИНГ ВНЕШНИХ HTTP/HTTPS РЕСУРСОВ
+  # ----------------------------------------------
+  - job_name: 'blackbox'               # Задание для Blackbox Exporter (проверка доступности сайтов)
+    metrics_path: /probe               # Специальный путь для Blackbox Exporter
+    params:                           # Параметры запроса
+      module: [http_2xx_example]      # Модуль из blackbox.yml (проверка HTTP 200 ответа)
     static_configs:
-      - targets:
-        - https://prometheus.io     # Пример цели для мониторинга
-        - https://grafana.com       # Пример цели для мониторинга
-        - https://google.com        # Пример цели для мониторинга
-    scrape_interval: 30s
-    scrape_timeout: 10s
+      - targets:                      # Список сайтов для мониторинга
+        - https://prometheus.io       # Официальный сайт Prometheus
+        - https://grafana.com         # Официальный сайт Grafana
+        - https://google.com          # Google как эталон доступности
+    scrape_interval: 30s              # Проверяем сайты каждые 30 секунд
+    scrape_timeout: 10s               # Максимальное время ожидания ответа от сайта
+    # Конфигурация перенаправления меток (relabeling)
     relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
+      # Этап 1: Берем адрес цели и сохраняем как параметр target для Blackbox
+      - source_labels: [__address__]   # Исходная метка с адресом цели
+        target_label: __param_target   # Сохраняем как параметр target для HTTP запроса
+      # Этап 2: Копируем значение target в метку instance для отображения в Prometheus
       - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: blackbox:9115
+        target_label: instance         # Метка instance будет содержать URL проверяемого сайта
+      # Этап 3: Заменяем адрес цели на адрес Blackbox Exporter
+      - target_label: __address__      # Целевая метка для изменения
+        replacement: blackbox:9115     # Адрес Blackbox Exporter (DNS имя контейнера + порт)
