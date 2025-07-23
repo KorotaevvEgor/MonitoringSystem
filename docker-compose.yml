@@ -32,7 +32,7 @@ services:
     ports:
      - "9090:9090"                     # Проброс порта 9090 для веб-интерфейса Prometheus
 
-  # Сервис для проверки доступности внешних ресурсов
+  #  Сервис для проверки доступности внешних ресурсов
   blackbox:
     image: prom/blackbox-exporter:v0.27.0  # Официальный образ Blackbox Exporter
     container_name: blackbox               # Фиксированное имя контейнера
